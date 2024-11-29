@@ -3,13 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin-allow-popups">
     <title>Google Drive API Example with GIS</title>
-    <script src="https://accounts.google.com/gsi/client"></script>
+    <!-- Google API 라이브러리 로드 순서 변경 -->
     <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-    <button id="login-btn">Google 로그인</button>
+    <div id="g_id_onload"
+         data-client_id="474742043344-81ventkmf01jsh475eilq7f79r1io9ma.apps.googleusercontent.com"
+         data-callback="handleCredentialResponse"
+         data-auto_prompt="false">
+    </div>
+    <div class="g_id_signin"
+         data-type="standard"
+         data-size="large"
+         data-theme="outline"
+         data-text="sign_in_with"
+         data-shape="rectangular"
+         data-logo_alignment="left">
+    </div>
     <button id="check-file-btn" disabled>파일 확인 및 생성</button>
 
     <script>
@@ -19,20 +31,6 @@
         const FILE_NAME = 'example.json';
 
         let accessToken = null;
-
-        // Google Identity Services 초기화
-        function initializeGoogleIdentity() {
-            google.accounts.id.initialize({
-                client_id: CLIENT_ID,
-                callback: handleCredentialResponse,
-                scope: SCOPES
-            });
-
-            google.accounts.id.renderButton(
-                document.getElementById('login-btn'),
-                { theme: 'outline', size: 'large' }
-            );
-        }
 
         // 인증 응답 처리
         async function handleCredentialResponse(response) {
@@ -111,10 +109,8 @@
         // 버튼 이벤트 연결
         document.getElementById('check-file-btn').addEventListener('click', checkAndCreateFile);
 
-        // 페이지 로드 시 초기화
-        window.onload = function() {
-            gapi.load('client', initializeGoogleIdentity);
-        };
+        // GAPI 초기화
+        gapi.load('client');
     </script>
 </body>
 </html>
