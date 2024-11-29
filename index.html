@@ -3,25 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin-allow-popups">
     <title>Google Drive API Example with GIS</title>
-    <!-- Google API 라이브러리 로드 순서 변경 -->
+    <script src="https://accounts.google.com/gsi/client"></script>
     <script src="https://apis.google.com/js/api.js"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-    <div id="g_id_onload"
-         data-client_id="474742043344-81ventkmf01jsh475eilq7f79r1io9ma.apps.googleusercontent.com"
-         data-callback="handleCredentialResponse"
-         data-auto_prompt="false">
-    </div>
-    <div class="g_id_signin"
-         data-type="standard"
-         data-size="large"
-         data-theme="outline"
-         data-text="sign_in_with"
-         data-shape="rectangular"
-         data-logo_alignment="left">
-    </div>
+    <button id="login-btn">Google 로그인</button>
+    <button id="logout-btn" disabled>로그아웃</button>
     <button id="check-file-btn" disabled>파일 확인 및 생성</button>
 
     <script>
@@ -32,26 +21,68 @@
 
         let accessToken = null;
 
-        // 인증 응답 처리
-        async function handleCredentialResponse(response) {
-            try {
-                accessToken = response.credential;
+        // Google Identity Services 초기화
+        function initializeGoogleIdentity() {
+            google.accounts.id.initialize({
+                client_id: CLIENT_ID,
+                callback: handleCredentialResponse,
+                scope: SCOPES
+            });
 
-                await gapi.client.init({
-                    apiKey: API_KEY,
-                    discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
-                });
-
-                gapi.client.setToken({
-                    access_token: accessToken
-                });
-
-                alert('로그인 성공!');
-                document.getElementById('check-file-btn').disabled = false;
-            } catch (error) {
-                console.error('로그인 처리 중 오류:', error);
-            }
+            google.accounts.id.renderButton(
+                document.getElementById('login-btn'),
+                { theme: 'outline', size: 'large' }
+            );
         }
+
+        // 인증 응답 처리
+        // 로그아웃 함수 추가
+function handleSignOut() {
+    try {
+        // 토큰 제거
+        accessToken = null;
+        gapi.client.setToken(null);
+        
+        // 버튼 상태 업데이트
+        document.getElementById('check-file-btn').disabled = true;
+        document.getElementById('logout-btn').disabled = true;
+        
+        // Google Identity Services 초기화
+        google.accounts.id.disableAutoSelect();
+        
+        alert('로그아웃 성공!');
+        
+        // 로그인 버튼 다시 초기화
+        initializeGoogleIdentity();
+    } catch (error) {
+        console.error('로그아웃 처리 중 오류:', error);
+    }
+}
+
+// handleCredentialResponse 함수 수정 (로그인 성공 시 로그아웃 버튼 활성화)
+async function handleCredentialResponse(response) {
+    try {
+        accessToken = response.credential;
+
+        await gapi.client.init({
+            apiKey: API_KEY,
+            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
+        });
+
+        gapi.client.setToken({
+            access_token: accessToken
+        });
+
+        alert('로그인 성공!');
+        document.getElementById('check-file-btn').disabled = false;
+        document.getElementById('logout-btn').disabled = false;  // 로그아웃 버튼 활성화
+    } catch (error) {
+        console.error('로그인 처리 중 오류:', error);
+    }
+}
+
+// 로그아웃 버튼 이벤트 리스너 추가 (기존 이벤트 리스너 근처에 추가)
+document.getElementById('logout-btn').addEventListener('click', handleSignOut);
 
         // 파일 검색 및 생성 함수
         async function checkAndCreateFile() {
@@ -109,8 +140,10 @@
         // 버튼 이벤트 연결
         document.getElementById('check-file-btn').addEventListener('click', checkAndCreateFile);
 
-        // GAPI 초기화
-        gapi.load('client');
+        // 페이지 로드 시 초기화
+        window.onload = function() {
+            gapi.load('client', initializeGoogleIdentity);
+        };
     </script>
 </body>
 </html>
