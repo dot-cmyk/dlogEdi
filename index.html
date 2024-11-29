@@ -201,7 +201,7 @@
             background: #f8f8f8;
         }
         .drive-buttons {
-    position: fixed;
+    
     top: 20px;
     right: 20px;
     display: flex;
@@ -230,7 +230,7 @@
 </head>
 <body>
     <h2>대화 에디터</h2>
-    <div class="drive-buttons">
+    <div class="drive-buttons" style="float: right;">
         <button id="authorize_button" onclick="handleAuthClick()" >Google Drive 연동</button>
         <button id="load_button" onclick="handleFileOperationLoad()" disabled>파일 불러오기</button>
     </div>
