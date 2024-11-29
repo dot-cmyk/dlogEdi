@@ -24,6 +24,7 @@
         const button = google.accounts.id.initialize({
             client_id: CLIENT_ID,
             callback: handleCredentialResponse,
+            scope: SCOPES  // 스코프 추가
         });
 
         // 로그인 버튼 표시
@@ -44,6 +45,7 @@
                         client_id: CLIENT_ID,
                         grant_type: 'authorization_code',
                         redirect_uri: 'http://localhost', // 리디렉션 URI
+                        scope: SCOPES  // 스코프 추가
                     }),
                 });
 
