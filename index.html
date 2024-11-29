@@ -233,7 +233,8 @@
 </head>
 <body>
     <h2>대화 에디터</h2>
-    
+    <button id="authorize_button" onclick="handleAuthClick()">Authorize</button>
+    <button id="signout_button" onclick="handleSignoutClick()">Sign Out</button>
     <input type="file" id="fileInput" accept=".json">
     <button onclick="saveToFile()">저장</button>
     <button onclick="addScene()">씬 추가</button>
@@ -283,62 +284,141 @@
             </div>
         </div>
     </div>
-
+    
+    
     <div id="editor"></div>
-    <!-- <script src="https://apis.google.com/js/api.js" onload="loadGoogleAPI()"></script> -->
+    <!-- <script src="https://accounts.google.com/gsi/client" async defer></script> -->
+    <script src="https://apis.google.com/js/api.js" ></script>
     <script>
         // Google API 라이브러리 로드
-// 새로운 초기화 및 로그인 코드
-let tokenClient;
-const allowedEmails = ['hyoojun@gmail.com']; // 허용된 이메일 목록
+        // 새로운 초기화 및 로그인 코드
+        
+        const allowedEmails = ['hyoojun@gmail.com']; // 허용된 이메일 목록
+        
+        // 페이지 로드 시 초기화
+        // TODO(developer): Set to client ID and API key from the Developer Console
+      const CLIENT_ID = '474742043344-81ventkmf01jsh475eilq7f79r1io9ma.apps.googleusercontent.com';
+      const API_KEY = 'AIzaSyDbs-pBcsUBkLS-l3fKWnBG5a09ovCnXCM';
 
-function initializeGoogleAuth() {
-    tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: 'YOUR_CLIENT_ID',
-        scope: 'https://www.googleapis.com/auth/drive.file',
-        callback: handleCredentialResponse
-    });
-}
+      // Discovery doc URL for APIs used by the quickstart
+      const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 
-function handleSignIn() {
-    tokenClient.requestAccessToken();
-}
+      // Authorization scopes required by the API; multiple scopes can be
+      // included, separated by spaces.
+      const SCOPES = 'https://www.googleapis.com/auth/drive.metadata.readonly';
 
-async function handleCredentialResponse(response) {
-    if (response.error) {
-        throw response;
-    }
+      let tokenClient;
+      let gapiInited = false;
+      let gisInited = false;
 
-    try {
-        // 사용자 정보 가져오기
-        const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-            headers: {
-                'Authorization': `Bearer ${response.access_token}`
-            }
+    //   document.getElementById('authorize_button').style.visibility = 'hidden';
+    //   document.getElementById('signout_button').style.visibility = 'hidden';
+
+      /**
+       * Callback after api.js is loaded.
+       */
+      function gapiLoaded() {
+        gapi.load('client', initializeGapiClient);
+      }
+
+      /**
+       * Callback after the API client is loaded. Loads the
+       * discovery doc to initialize the API.
+       */
+      async function initializeGapiClient() {
+        await gapi.client.init({
+          apiKey: API_KEY,
+          discoveryDocs: [DISCOVERY_DOC],
         });
-        const userInfo = await userInfoResponse.json();
+        gapiInited = true;
+        maybeEnableButtons();
+      }
 
-        // 허용된 이메일인지 확인
-        if (!allowedEmails.includes(userInfo.email)) {
-            alert('접근 권한이 없는 계정입니다.');
-            google.accounts.oauth2.revoke(response.access_token);
-            updateSignInStatus(false);
-            return;
+      /**
+       * Callback after Google Identity Services are loaded.
+       */
+      function gisLoaded() {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: CLIENT_ID,
+          scope: SCOPES,
+          callback: '', // defined later
+        });
+        gisInited = true;
+        maybeEnableButtons();
+      }
+
+      /**
+       * Enables user interaction after all libraries are loaded.
+       */
+      function maybeEnableButtons() {
+        if (gapiInited && gisInited) {
+          document.getElementById('authorize_button').style.visibility = 'visible';
         }
+      }
 
-        // 로그인 성공
-        updateSignInStatus(true);
-        window.access_token = response.access_token;
-    } catch (error) {
-        console.error('Error:', error);
-        updateSignInStatus(false);
-    }
-}
+      /**
+       *  Sign in the user upon button click.
+       */
+      function handleAuthClick() {
+        tokenClient.callback = async (resp) => {
+          if (resp.error !== undefined) {
+            throw (resp);
+          }
+          document.getElementById('signout_button').style.visibility = 'visible';
+          document.getElementById('authorize_button').innerText = 'Refresh';
+          await listFiles();
+        };
 
-// 페이지 로드 시 초기화
-window.onload = function() {
-    initializeGoogleAuth();
-}
+        if (gapi.client.getToken() === null) {
+          // Prompt the user to select a Google Account and ask for consent to share their data
+          // when establishing a new session.
+          tokenClient.requestAccessToken({prompt: 'consent'});
+        } else {
+          // Skip display of account chooser and consent dialog for an existing session.
+          tokenClient.requestAccessToken({prompt: ''});
+        }
+      }
+
+      /**
+       *  Sign out the user upon button click.
+       */
+      function handleSignoutClick() {
+        const token = gapi.client.getToken();
+        if (token !== null) {
+          google.accounts.oauth2.revoke(token.access_token);
+          gapi.client.setToken('');
+          document.getElementById('content').innerText = '';
+          document.getElementById('authorize_button').innerText = 'Authorize';
+          document.getElementById('signout_button').style.visibility = 'hidden';
+        }
+      }
+
+      /**
+       * Print metadata for first 10 files.
+       */
+      async function listFiles() {
+        let response;
+        try {
+          response = await gapi.client.drive.files.list({
+            'pageSize': 10,
+            'fields': 'files(id, name)',
+          });
+        } catch (err) {
+          document.getElementById('content').innerText = err.message;
+          return;
+        }
+        const files = response.result.files;
+        if (!files || files.length == 0) {
+          document.getElementById('content').innerText = 'No files found.';
+          return;
+        }
+        // Flatten to string to display
+        const output = files.reduce(
+            (str, file) => `${str}${file.name} (${file.id})\n`,
+            'Files:\n');
+        document.getElementById('content').innerText = output;
+      }
+
 
 
 
