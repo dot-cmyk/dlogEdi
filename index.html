@@ -65,12 +65,12 @@
 
         // 파일 검색 및 생성 함수
         async function checkAndCreateFile() {
+            const response = await gapi.client.drive.files.list({
+                q: `name='${FILE_NAME}' and trashed=false`,
+                fields: 'files(id, name)',
+            });
+            
             try {
-    const response = await gapi.client.drive.files.list({
-        q: `name='${FILE_NAME}' and trashed=false`,
-        fields: 'files(id, name)',
-    });
-
     if (response.result && response.result.files && response.result.files.length > 0) {
         alert(`파일이 이미 존재합니다: ${response.result.files[0].name}`);
     } else {
