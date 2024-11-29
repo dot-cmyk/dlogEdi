@@ -200,6 +200,34 @@
             padding: 5px;
             background: #f8f8f8;
         }
+        .control-buttons {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.google-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.google-button img {
+    width: 18px;
+    height: 18px;
+}
+
+.google-controls {
+    display: flex;
+    gap: 10px;
+}
 
     </style>
 </head>
@@ -259,6 +287,128 @@
     <div id="editor"></div>
     <script src="https://apis.google.com/js/api.js" onload="loadGoogleAPI()"></script>
     <script>
+        // Google API 라이브러리 로드
+function loadGoogleAPI() {
+    gapi.load('client:auth2', initClient);
+}
+
+// API 클라이언트 초기화
+function initClient() {
+    gapi.client.init({
+        apiKey: 'AIzaSyDbs-pBcsUBkLS-l3fKWnBG5a09ovCnXCM',
+        clientId: '474742043344-81ventkmf01jsh475eilq7f79r1io9ma.apps.googleusercontent.com',
+        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+        scope: 'https://www.googleapis.com/auth/drive.file'
+    }).then(function() {
+        // 인증 상태 리스너
+        gapi.auth2.getAuthInstance().isSignedIn.listen(updateSignInStatus);
+        // 초기 인증 상태 확인
+        updateSignInStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+        // 로그인 버튼 이벤트 연결
+        document.getElementById('googleSignIn').onclick = handleAuthClick;
+    });
+}
+function handleSignIn() {
+    const allowedEmails = ['hyoojun@gmail.com']; // 허용된 이메일 목록
+
+    gapi.auth2.getAuthInstance().signIn().then(function(googleUser) {
+        const profile = googleUser.getBasicProfile();
+        const email = profile.getEmail();
+
+        if (!allowedEmails.includes(email)) {
+            alert('접근 권한이 없는 계정입니다.');
+            gapi.auth2.getAuthInstance().signOut();
+            return;
+        }
+        
+        // 로그인 성공 처리
+        updateSignInStatus(true);
+    });
+}
+
+
+// 인증 상태에 따른 UI 업데이트
+function updateSignInStatus(isSignedIn) {
+    if (isSignedIn) {
+        document.getElementById('googleSignIn').style.display = 'none';
+        document.getElementById('driveLoad').style.display = 'inline';
+        document.getElementById('driveSave').style.display = 'inline';
+    } else {
+        document.getElementById('googleSignIn').style.display = 'inline';
+        document.getElementById('driveLoad').style.display = 'none';
+        document.getElementById('driveSave').style.display = 'none';
+    }
+}
+
+// 로그인 처리
+function handleAuthClick() {
+    gapi.auth2.getAuthInstance().signIn();
+}
+// 드라이브에서 파일 불러오기
+function loadFromDrive() {
+    // 파일 선택 다이얼로그 표시
+    gapi.client.drive.files.list({
+        q: "mimeType='application/json'",
+        spaces: 'drive',
+        fields: 'files(id, name)'
+    }).then(function(response) {
+        const files = response.result.files;
+        // 파일 목록을 보여주고 선택하게 하는 UI 표시
+        showFileSelector(files);
+    });
+}
+
+// 드라이브에 저장하기
+function saveToDrive() {
+    const fileContent = JSON.stringify(dialogueData, null, 2);
+    const file = new Blob([fileContent], {type: 'application/json'});
+    const metadata = {
+        'name': 'dialogue_data.json', // 저장할 파일 이름
+        'mimeType': 'application/json'
+    };
+
+    const form = new FormData();
+    form.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
+    form.append('file', file);
+
+    // 파일 업로드
+    fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        method: 'POST',
+        headers: new Headers({
+            'Authorization': 'Bearer ' + gapi.auth.getToken().access_token
+        }),
+        body: form
+    }).then(response => {
+        alert('파일이 드라이브에 저장되었습니다.');
+    }).catch(error => {
+        console.error('Error:', error);
+        alert('저장 중 오류가 발생했습니다.');
+    });
+}
+function showFileSelector(files) {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 20px;
+        border: 1px solid #ccc;
+        max-height: 80vh;
+        overflow-y: auto;
+    `;
+    
+    files.forEach(file => {
+        const button = document.createElement('button');
+        button.textContent = file.name;
+        button.onclick = () => loadFile(file.id);
+        modal.appendChild(button);
+    });
+
+    document.body.appendChild(modal);
+}
+
         // 씬의 접힘 상태를 저장할 객체
 let sceneStates = {};
         let dialogueData = {
@@ -792,90 +942,14 @@ function removeScene(sceneIndex) {
         <button onclick="addScene()">씬 추가</button>
         <button style="float: right;" onclick="copyToClipboard()">클립보드 복사</button>
         <button style="float: right;"  onclick="saveToFile()">저장</button>
-        <button style="float: right;" id="driveLoad" style="display: none;">드라이브에서 불러오기</button>
-        <button style="float: right;" id="driveSave" style="display: none;">드라이브에 저장</button>  
+         <div style="float: right; class="google-controls">
+        <button id="googleSignIn" class="google-button">Google 로그인</button>
+        <button id="driveLoad" style="display: none;">드라이브에서 불러오기</button>
+        <button id="driveSave" style="display: none;">드라이브에 저장</button>
+    </div>
+         
     `;
     editor.appendChild(addSceneButton);
-}
-// Google API 라이브러리 로드
-function loadGoogleAPI() {
-    gapi.load('client:auth2', initClient);
-}
-
-// API 클라이언트 초기화
-function initClient() {
-    gapi.client.init({
-        apiKey: 'YOUR_API_KEY',
-        clientId: 'YOUR_CLIENT_ID',
-        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-        scope: 'https://www.googleapis.com/auth/drive.file'
-    }).then(function() {
-        // 인증 상태 리스너
-        gapi.auth2.getAuthInstance().isSignedIn.listen(updateSignInStatus);
-        // 초기 인증 상태 확인
-        updateSignInStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
-        // 로그인 버튼 이벤트 연결
-        document.getElementById('googleSignIn').onclick = handleAuthClick;
-    });
-}
-
-// 인증 상태에 따른 UI 업데이트
-function updateSignInStatus(isSignedIn) {
-    if (isSignedIn) {
-        document.getElementById('googleSignIn').style.display = 'none';
-        document.getElementById('driveLoad').style.display = 'inline';
-        document.getElementById('driveSave').style.display = 'inline';
-    } else {
-        document.getElementById('googleSignIn').style.display = 'inline';
-        document.getElementById('driveLoad').style.display = 'none';
-        document.getElementById('driveSave').style.display = 'none';
-    }
-}
-
-// 로그인 처리
-function handleAuthClick() {
-    gapi.auth2.getAuthInstance().signIn();
-}
-// 드라이브에서 파일 불러오기
-function loadFromDrive() {
-    // 파일 선택 다이얼로그 표시
-    gapi.client.drive.files.list({
-        q: "mimeType='application/json'",
-        spaces: 'drive',
-        fields: 'files(id, name)'
-    }).then(function(response) {
-        const files = response.result.files;
-        // 파일 목록을 보여주고 선택하게 하는 UI 표시
-        showFileSelector(files);
-    });
-}
-
-// 드라이브에 저장하기
-function saveToDrive() {
-    const fileContent = JSON.stringify(dialogueData, null, 2);
-    const file = new Blob([fileContent], {type: 'application/json'});
-    const metadata = {
-        'name': 'dialogue_data.json', // 저장할 파일 이름
-        'mimeType': 'application/json'
-    };
-
-    const form = new FormData();
-    form.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
-    form.append('file', file);
-
-    // 파일 업로드
-    fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-        method: 'POST',
-        headers: new Headers({
-            'Authorization': 'Bearer ' + gapi.auth.getToken().access_token
-        }),
-        body: form
-    }).then(response => {
-        alert('파일이 드라이브에 저장되었습니다.');
-    }).catch(error => {
-        console.error('Error:', error);
-        alert('저장 중 오류가 발생했습니다.');
-    });
 }
 
 // 클립보드 복사 함수 추가
