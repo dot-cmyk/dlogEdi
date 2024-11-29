@@ -15,7 +15,7 @@
         const CLIENT_ID = '474742043344-81ventkmf01jsh475eilq7f79r1io9ma.apps.googleusercontent.com';
         const API_KEY = 'AIzaSyDbs-pBcsUBkLS-l3fKWnBG5a09ovCnXCM';
         // const CLIENT_ID = 'YOUR_CLIENT_ID_HERE'; // Google Cloud Console에서 발급받은 클라이언트 ID
-        const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+        const SCOPES = 'https://www.googleapis.com/auth/drive';
         const FILE_NAME = 'example.json'; // 확인할 파일 이름
 
         let accessToken = null;
@@ -65,12 +65,12 @@
 
         // 파일 검색 및 생성 함수
         async function checkAndCreateFile() {
+            try {
             const response = await gapi.client.drive.files.list({
                 q: `name='${FILE_NAME}' and trashed=false`,
                 fields: 'files(id, name)',
             });
-            
-            try {
+            console.log('API 응답 데이터:', response); // 응답 데이터 확인
     if (response.result && response.result.files && response.result.files.length > 0) {
         alert(`파일이 이미 존재합니다: ${response.result.files[0].name}`);
     } else {
