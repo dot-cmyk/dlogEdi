@@ -66,20 +66,20 @@
         // 파일 검색 및 생성 함수
         async function checkAndCreateFile() {
             try {
-                const response = await gapi.client.drive.files.list({
-                    q: `name='${FILE_NAME}' and trashed=false`,
-                    fields: 'files(id, name)',
-                });
+    const response = await gapi.client.drive.files.list({
+        q: `name='${FILE_NAME}' and trashed=false`,
+        fields: 'files(id, name)',
+    });
 
-                if (response.result.files.length > 0) {
-                    alert(`파일이 이미 존재합니다: ${response.result.files[0].name}`);
-                } else {
-                    alert('파일이 없습니다. 새 파일을 생성합니다.');
-                    await createFile();
-                }
-            } catch (error) {
-                console.error('파일 확인 중 오류 발생:', error);
-            }
+    if (response.result && response.result.files && response.result.files.length > 0) {
+        alert(`파일이 이미 존재합니다: ${response.result.files[0].name}`);
+    } else {
+        alert('파일이 없습니다. 새 파일을 생성합니다.');
+        await createFile();
+    }
+} catch (error) {
+    console.error('파일 확인 중 오류 발생:', error);
+}
         }
 
         // 새 JSON 파일 생성 함수
