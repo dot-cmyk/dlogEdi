@@ -34,36 +34,42 @@
         );
 
         // 로그인 콜백 처리
-        async function handleCredentialResponse(response) {
-            try {
-                // JWT를 교환하여 액세스 토큰 가져오기
-                const result = await fetch('https://oauth2.googleapis.com/token', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({
-                        code: response.credential,
-                        client_id: CLIENT_ID,
-                        grant_type: 'authorization_code',
-                        redirect_uri: 'http://localhost', // 리디렉션 URI
-                        scope: SCOPES  // 스코프 추가
-                    }),
-                });
+        // gapi 초기화 부분 수정
+async function handleCredentialResponse(response) {
+    try {
+        // JWT를 교환하여 액세스 토큰 가져오기
+        const result = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                code: response.credential,
+                client_id: CLIENT_ID,
+                grant_type: 'authorization_code',
+                redirect_uri: 'http://localhost',
+                scope: SCOPES
+            }),
+        });
 
-                const data = await result.json();
-                accessToken = data.access_token;
+        const data = await result.json();
+        accessToken = data.access_token;
 
-                // gapi 초기화
-                await gapi.client.init({
-                    apiKey: API_KEY,
-                    accessToken: accessToken,
-                });
+        // gapi 초기화 및 Drive API 로드
+        await gapi.client.init({
+            apiKey: API_KEY,
+            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
+        });
 
-                alert('로그인 성공!');
-                document.getElementById('check-file-btn').disabled = false;
-            } catch (error) {
-                console.error('로그인 처리 중 오류:', error);
-            }
-        }
+        // 액세스 토큰 설정
+        gapi.client.setToken({
+            access_token: accessToken
+        });
+
+        alert('로그인 성공!');
+        document.getElementById('check-file-btn').disabled = false;
+    } catch (error) {
+        console.error('로그인 처리 중 오류:', error);
+    }
+}
 
         // 파일 검색 및 생성 함수
         async function checkAndCreateFile() {
@@ -122,7 +128,12 @@
         document.getElementById('check-file-btn').addEventListener('click', checkAndCreateFile);
 
         // gapi 초기화
-        gapi.load('client');
+        gapi.load('client', async () => {
+    await gapi.client.init({
+        apiKey: API_KEY,
+        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
+    });
+});
     </script>
 </body>
 </html>
