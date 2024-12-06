@@ -10,6 +10,21 @@
         .scene-header {
         margin-bottom: 15px;
     }
+    .add-dialogue-between-btn {
+       height: 0%;
+        text-align: right;
+    }
+    .add-dialogue-between-btn button {
+        background: #f0f0f0;
+        border: 1px dashed #ccc;
+        padding: 3px 10px;
+        cursor: pointer;
+        position: absolute;
+        
+    }
+    .add-dialogue-between-btn button:hover {
+        background: #e0e0e0;
+    }
     .scene-title {
         display: flex;
         justify-content: space-between;
@@ -826,6 +841,14 @@ function removeScene(sceneIndex) {
     }
 
         if (scene.dialogues) {
+        // 첫 번째 대화 앞에 대화 추가 버튼
+    const firstAddButton = document.createElement('div');
+    firstAddButton.className = 'add-dialogue-between-btn';
+    firstAddButton.innerHTML = `
+        <button onclick="addDialogueAt(${sceneIndex}, 0)">여기에 대화 추가</button>
+    `;
+    sceneContent.appendChild(firstAddButton);
+
             scene.dialogues.forEach((dialogue, dialogueIndex) => {
                 const dialogueDiv = document.createElement('div');
                 dialogueDiv.className = 'dialogue';
@@ -1117,6 +1140,13 @@ if (dialogue.next_id !== undefined) {
                 contentDiv.appendChild(effectsDiv);
                 dialogueDiv.appendChild(contentDiv);
                 sceneContent.appendChild(dialogueDiv);
+                 // 각 대화 뒤에 대화 추가 버튼
+        const addButton = document.createElement('div');
+        addButton.className = 'add-dialogue-between-btn';
+        addButton.innerHTML = `
+            <button onclick="addDialogueAt(${sceneIndex}, ${dialogueIndex + 1})">여기에 대화 추가</button>
+        `;
+        sceneContent.appendChild(addButton);
             });
         }
 
@@ -1143,6 +1173,16 @@ if (dialogue.next_id !== undefined) {
         
     `;
     editor.appendChild(addSceneButton);
+}
+// 특정 위치에 대화 추가하는 함수
+function addDialogueAt(sceneIndex, position) {
+    const newDialogue = {
+        character: dialogueData.character_name[0]?.key || '',
+        text: [''],
+        expression: dialogueData.expressions[0] || ''
+    };
+    dialogueData.scenes[sceneIndex].dialogues.splice(position, 0, newDialogue);
+    renderEditor();
 }
 // 갱신 함수 추가
 function refreshNextScene(sceneIndex, dialogueIndex) {
