@@ -537,12 +537,28 @@ let sceneStates = {};
                 dialogue.options = [];
             }
             dialogue.options.push({
-                text: "",
+                text: [''],
                 next_scene: "",
                 functionToCall: []
             });
             renderEditor();
         }
+        // 선택지 텍스트 변형 추가
+function addOptionTextVariant(sceneIndex, dialogueIndex, optionIndex) {
+    dialogueData.scenes[sceneIndex].dialogues[dialogueIndex].options[optionIndex].text.push('');
+    renderEditor();
+}
+
+// 선택지 텍스트 변형 제거
+function removeOptionTextVariant(sceneIndex, dialogueIndex, optionIndex, variantIndex) {
+    dialogueData.scenes[sceneIndex].dialogues[dialogueIndex].options[optionIndex].text.splice(variantIndex, 1);
+    renderEditor();
+}
+
+// 선택지 텍스트 업데이트
+function updateOptionText(sceneIndex, dialogueIndex, optionIndex, variantIndex, value) {
+    dialogueData.scenes[sceneIndex].dialogues[dialogueIndex].options[optionIndex].text[variantIndex] = value;
+}
 
         function removeDialogueOption(sceneIndex, dialogueIndex, optionIndex) {
             dialogueData.scenes[sceneIndex].dialogues[dialogueIndex].options.splice(optionIndex, 1);
@@ -935,11 +951,11 @@ if (dialogue.options) {
                         const optionDiv = document.createElement('div');
                         optionDiv.className = 'option-item';
                         optionDiv.innerHTML = `
-                            <input 
-                                value="${option.text || ''}" 
-                                placeholder="선택지 텍스트"
-                                onchange="dialogueData.scenes[${sceneIndex}].dialogues[${dialogueIndex}].options[${optionIndex}].text = this.value"
-                            >
+                            <textarea 
+            placeholder="선택지 텍스트"
+            onchange="dialogueData.scenes[${sceneIndex}].dialogues[${dialogueIndex}].options[${optionIndex}].text[0] = this.value"
+            style="width: 100%; min-height: 60px; resize: vertical; margin: 5px 0;"
+        >${option.text[0] || ''}</textarea>
 
                             <span style="margin-left: 10px; margin-right: 5px;">다음 ID:</span> 
                             <button class="reset2-btn" onclick="refreshOptionNextId(${sceneIndex}, ${dialogueIndex}, ${optionIndex})">↻</button>
