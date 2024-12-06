@@ -271,6 +271,17 @@
     </style>
 </head>
 <body>
+    
+    <div style="position: relative;">
+        <div style="float: right;">
+        <input 
+            type="text" 
+            id="jsonInput" 
+            placeholder="JSON 텍스트 입력" 
+            style="width: 200px;"
+        >
+        <button onclick="loadFromJsonText()">JSON 불러오기</button>
+    </div> </div>
     <h2>대화 에디터</h2>
     <div class="drive-buttons" style="float: right;">
         <button id="authorize_button" onclick="handleAuthClick()" >Google Drive 연동</button>
@@ -346,6 +357,7 @@
         gapi.load('client', initializeGapiClient);
       }
 
+      
       // 초기화 함수 수정
 async function initializeGapiClient() {
     await gapi.client.init({
@@ -531,6 +543,77 @@ let sceneStates = {};
             expressions: ["default"],
             scenes: []
         };
+        // JSON 텍스트로부터 데이터 불러오는 함수
+function loadFromJsonText() {
+    const jsonTextarea = document.getElementById('jsonInput');
+    const jsonText = jsonTextarea.value.trim();
+    
+    if (!jsonText) {
+        alert('JSON 텍스트를 입력해주세요.');
+        return;
+    }
+
+    try {
+        const parsedData = JSON.parse(jsonText);
+        
+        // 필수 필드 검증
+        if (!validateDialogueData(parsedData)) {
+            alert('올바른 대화 데이터 형식이 아닙니다.');
+            return;
+        }
+
+        // 데이터 로드
+        dialogueData = parsedData;
+        renderConfigLists();
+        renderEditor();
+        
+        // textarea 초기화
+        jsonTextarea.value = '';
+        
+        alert('JSON 데이터가 성공적으로 로드되었습니다.');
+    } catch (error) {
+        alert('JSON 파싱 오류: ' + error.message);
+    }
+}
+
+// 대화 데이터 구조 검증 함수
+function validateDialogueData(data) {
+    // 필수 필드 존재 여부 확인
+    const requiredFields = [
+        'character_name',
+        'background',
+        'bgm',
+        'effect',
+        'soundEffects',
+        'expressions',
+        'scenes'
+    ];
+
+    for (const field of requiredFields) {
+        if (!data.hasOwnProperty(field)) {
+            return false;
+        }
+    }
+
+    // character_name 배열의 각 항목이 key와 value를 가지고 있는지 확인
+    if (!Array.isArray(data.character_name) || 
+        !data.character_name.every(char => char.hasOwnProperty('key') && char.hasOwnProperty('value'))) {
+        return false;
+    }
+
+    // scenes 배열 검증
+    if (!Array.isArray(data.scenes)) {
+        return false;
+    }
+
+    // 각 scene의 필수 필드 검증
+    return data.scenes.every(scene => 
+        scene.hasOwnProperty('scene_id') &&
+        scene.hasOwnProperty('background') &&
+        scene.hasOwnProperty('bgm') &&
+        Array.isArray(scene.dialogues)
+    );
+}
         function addDialogueOption(sceneIndex, dialogueIndex) {
             const dialogue = dialogueData.scenes[sceneIndex].dialogues[dialogueIndex];
             if (!dialogue.options) {
