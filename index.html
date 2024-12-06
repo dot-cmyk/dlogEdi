@@ -673,14 +673,20 @@ let sceneStates = {};
         function handleEffectSelect(sceneIndex, dialogueIndex, type) {
             const dialogue = dialogueData.scenes[sceneIndex].dialogues[dialogueIndex];
             if (type === 'function') {
-                addFunction(sceneIndex, dialogueIndex);
-            } else if (type === 'sound') {
-                dialogue.sound_effect = soundEffects[0];
-            } else if (type === 'scene') {
-                dialogue.effect = sceneEffects[0];
-            } else if (type === 'next_scene') {
-                dialogue.next_scene = dialogueData.scenes[0]?.scene_id || 'end';
-            }
+        addFunction(sceneIndex, dialogueIndex);
+    } else if (type === 'sound') {
+        dialogue.sound_effect = dialogueData.soundEffects[0];
+    } else if (type === 'scene') {
+        dialogue.effect = dialogueData.effect[0];
+    } else if (type === 'next_scene') {
+        dialogue.next_scene = dialogueData.scenes[0]?.scene_id || 'end';
+    } else if (type === 'options') {
+        addDialogueOption(sceneIndex, dialogueIndex);
+    } else if (type === 'id') {
+        dialogue.id = `dialogue_${sceneIndex}_${dialogueIndex}`;
+    } else if (type === 'next_id') {
+        dialogue.next_id = '';
+    }
             renderEditor();
         }
 
@@ -794,12 +800,14 @@ function removeScene(sceneIndex) {
                         <button class="Dialoguedelete-btn" onclick="removeDialogue(${sceneIndex}, ${dialogueIndex})">대사 삭제</button>
 
                         <select class="dialogue-effect-select" onchange="handleEffectSelect(${sceneIndex}, ${dialogueIndex}, this.value)">
-                            <option value="">효과 추가...</option>
-                            <option value="function">함수 추가</option>
-                            <option value="sound">사운드 추가</option>
-                            <option value="scene">씬 효과 추가</option>
-                            <option value="next_scene">다음 씬 설정</option>
-                            <option value="options">선택지 추가</option>
+                             <option value="">효과 추가...</option>
+        <option value="function">함수 추가</option>
+        <option value="sound">사운드 추가</option>
+        <option value="scene">씬 효과 추가</option>
+        <option value="next_scene">다음 씬 설정</option>
+        <option value="options">선택지 추가</option>
+        <option value="id">ID 추가</option>
+        <option value="next_id">Next ID 추가</option>
                         </select>
                     </div>
                      
@@ -902,7 +910,40 @@ function removeScene(sceneIndex) {
                     `;
                     effectsDiv.appendChild(effectDiv);
                 }
+// 효과 영역에 ID와 next_id 입력 필드 추가
+if (dialogue.id !== undefined) {
+    const idDiv = document.createElement('div');
+    idDiv.className = 'effect-input';
+    idDiv.innerHTML = `
+        <div class="effect-row">
+            <span class="effect-label">대화 ID</span>
+            <input 
+                value="${dialogue.id}" 
+                placeholder="대화 ID"
+                onchange="dialogueData.scenes[${sceneIndex}].dialogues[${dialogueIndex}].id = this.value"
+            >
+            <button class="delete-btn" onclick="delete dialogueData.scenes[${sceneIndex}].dialogues[${dialogueIndex}].id; renderEditor()">X</button>
+        </div>
+    `;
+    effectsDiv.appendChild(idDiv);
+}
 
+if (dialogue.next_id !== undefined) {
+    const nextIdDiv = document.createElement('div');
+    nextIdDiv.className = 'effect-input';
+    nextIdDiv.innerHTML = `
+        <div class="effect-row">
+            <span class="effect-label">다음 대화 ID</span>
+            <input 
+                value="${dialogue.next_id}" 
+                placeholder="다음 대화 ID"
+                onchange="dialogueData.scenes[${sceneIndex}].dialogues[${dialogueIndex}].next_id = this.value"
+            >
+            <button class="delete-btn" onclick="delete dialogueData.scenes[${sceneIndex}].dialogues[${dialogueIndex}].next_id; renderEditor()">X</button>
+        </div>
+    `;
+    effectsDiv.appendChild(nextIdDiv);
+}
                 // 다음 씬
                 if (dialogue.next_scene !== undefined) {
                     const nextSceneDiv = document.createElement('div');
@@ -938,6 +979,11 @@ function removeScene(sceneIndex) {
                                 placeholder="선택지 텍스트"
                                 onchange="dialogueData.scenes[${sceneIndex}].dialogues[${dialogueIndex}].options[${optionIndex}].text = this.value"
                             >
+                             <input 
+        value="${option.next_id || ''}" 
+        placeholder="다음 대화 ID"
+        onchange="dialogueData.scenes[${sceneIndex}].dialogues[${dialogueIndex}].options[${optionIndex}].next_id = this.value"
+    >
                             <select onchange="dialogueData.scenes[${sceneIndex}].dialogues[${dialogueIndex}].options[${optionIndex}].next_scene = this.value">
                                 <option value="">다음 씬 선택</option>
                                 ${dialogueData.scenes.map(s => 
